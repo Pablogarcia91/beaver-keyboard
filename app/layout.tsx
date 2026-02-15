@@ -15,7 +15,28 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Beaver Keyboard",
-  description: "Digital synthesizer inspired by Teenage Engineering OP-1",
+  description: "Digital synthesizer free. Let's create some cool vibes ;)",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎹</text></svg>",
+  },
+  openGraph: {
+    title: "Beaver Keyboard",
+    description: "Digital synthesizer free. Let's create some cool vibes ;)",
+    images: [
+      {
+        url: "/beaver-keyboard-thumbnail.jpeg",
+        width: 1200,
+        height: 630,
+        alt: "Beaver Keyboard - Digital Synthesizer",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Beaver Keyboard",
+    description: "Digital synthesizer free. Let's create some cool vibes ;)",
+    images: ["/beaver-keyboard-thumbnail.jpeg"],
+  },
 };
 
 export default function RootLayout({
