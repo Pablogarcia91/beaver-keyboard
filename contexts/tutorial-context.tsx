@@ -167,6 +167,8 @@ export function TutorialProvider({ children, level }: TutorialProviderProps) {
       ...prev,
       isActive: false,
       hasSeenTutorial: true,
+      completedStepIds: [],
+      currentStepIndex: 0,
     }));
   }, []);
 

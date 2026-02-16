@@ -19,12 +19,49 @@ import { DifficultyLevel } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const LEVEL_KEY = 'beaver-keyboard-level';
+const MOBILE_WARNING_KEY = 'beaver-keyboard-mobile-warning-seen';
 
 const LEVELS: { id: DifficultyLevel; label: string; activeColor: string; activeBorder: string }[] = [
   { id: 'basic', label: 'Basic', activeColor: 'text-op1-green', activeBorder: 'border-op1-green' },
   { id: 'intermediate', label: 'Intermediate', activeColor: 'text-op1-blue', activeBorder: 'border-op1-blue' },
   { id: 'expert', label: 'Expert', activeColor: 'text-op1-orange', activeBorder: 'border-op1-orange' },
 ];
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
+      setIsMobile(hasTouchScreen && isSmallScreen);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  return isMobile;
+}
+
+function useIsPortrait() {
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
+  }, []);
+
+  return isPortrait;
+}
 
 export function Synthesizer() {
   const [level, setLevel] = useState<DifficultyLevel>('basic');
@@ -63,6 +100,21 @@ function SynthesizerInner({ level, onSetLevel }: SynthesizerInnerProps) {
   const { startTutorial, hasSeenTutorial, isActive: tutorialActive } = useTutorial();
   const [showHelp, setShowHelp] = useState(false);
 
+  const isMobile = useIsMobile();
+  const isPortrait = useIsPortrait();
+  const [mobileWarningDismissed, setMobileWarningDismissed] = useState(true);
+
+  // Load mobile warning state from localStorage
+  useEffect(() => {
+    const seen = localStorage.getItem(MOBILE_WARNING_KEY);
+    setMobileWarningDismissed(!!seen);
+  }, []);
+
+  const dismissMobileWarning = useCallback(() => {
+    setMobileWarningDismissed(true);
+    localStorage.setItem(MOBILE_WARNING_KEY, 'true');
+  }, []);
+
   const toggleHelp = useCallback(() => {
     setShowHelp((prev) => !prev);
   }, []);
@@ -70,6 +122,85 @@ function SynthesizerInner({ level, onSetLevel }: SynthesizerInnerProps) {
   const showIntermediate = level === 'intermediate' || level === 'expert';
   const showExpert = level === 'expert';
 
+  // Mobile: show recommendation modal first
+  if (isMobile && !mobileWarningDismissed) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background">
+        <div className="bg-op1-chassis border border-device-border rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+          <div className="text-3xl mb-3">&#128241;</div>
+          <h2 className="text-op1-orange font-mono text-base font-bold mb-3">
+            MOBILE DEVICE DETECTED
+          </h2>
+          <p className="text-device-text-muted font-mono text-xs mb-5 leading-relaxed">
+            For a better experience, we recommend using a larger device such as a tablet or computer.
+          </p>
+          <p className="text-device-text-dim font-mono text-[10px] mb-5">
+            A simplified version is available on mobile. Please rotate your device to landscape mode to play.
+          </p>
+          <button
+            onClick={dismissMobileWarning}
+            className="px-5 py-2 rounded-full bg-op1-green text-black font-mono text-xs font-bold"
+          >
+            GOT IT
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile: force landscape - show rotate overlay in portrait
+  if (isMobile && isPortrait) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 bg-background gap-4">
+        <div className="text-5xl animate-bounce">&#128260;</div>
+        <p className="text-device-text-muted font-mono text-sm text-center leading-relaxed max-w-xs">
+          Please rotate your device to <span className="text-op1-orange font-bold">landscape mode</span> to use the keyboard.
+        </p>
+      </div>
+    );
+  }
+
+  // Mobile landscape: simplified layout (display + keyboard only)
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed inset-0 flex flex-col bg-background">
+          {/* Compact top bar */}
+          <div className="flex items-center justify-between px-3 py-1 shrink-0">
+            <span className="text-op1-orange font-mono text-[10px] font-bold tracking-wider">
+              BEAVER KEYBOARD
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider transition-colors text-device-text-muted hover:text-op1-white"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? 'LIGHT' : 'DARK'}
+              </button>
+            </div>
+          </div>
+
+          {/* Display + Keyboard fill remaining space */}
+          <div className="flex-1 flex flex-col min-h-0 border border-device-border rounded-xl mx-2 mb-2 overflow-hidden device-frame">
+            {/* Wave visualizer - compact */}
+            <div className="shrink-0 h-24">
+              <DisplayScreen />
+            </div>
+
+            {/* Piano keyboard - fills remaining space */}
+            <div className="flex-1 min-h-0 border-t border-device-divider">
+              <KeyboardSection />
+            </div>
+          </div>
+        </div>
+
+        <TutorialOverlay />
+      </>
+    );
+  }
+
+  // Desktop: full layout
   return (
     <>
       <SynthKeyboardHandler onHelpToggle={toggleHelp} />
@@ -122,7 +253,9 @@ function SynthesizerInner({ level, onSetLevel }: SynthesizerInnerProps) {
 
       <DeviceFrame>
         <TransportBar onHelpToggle={toggleHelp} level={level} />
-        <DisplayScreen />
+        <div className="h-52">
+          <DisplayScreen />
+        </div>
 
         {showIntermediate && <ControlPanel />}
 

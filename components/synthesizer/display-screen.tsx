@@ -12,7 +12,7 @@ export function DisplayScreen() {
   const currentNote = activeNotesArray.length > 0 ? activeNotesArray[activeNotesArray.length - 1] : '---';
 
   return (
-    <div className="oled-screen border-b border-device-border overflow-hidden h-52">
+    <div className="oled-screen border-b border-device-border overflow-hidden h-full">
       <div className="relative h-full">
         <Oscilloscope analyser={analyser} />
 

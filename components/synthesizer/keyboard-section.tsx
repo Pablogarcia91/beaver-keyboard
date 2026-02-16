@@ -72,8 +72,8 @@ export function KeyboardSection() {
   }
 
   return (
-    <div className="py-3 px-1">
-      <div className="relative flex w-full" style={{ height: '112px' }}>
+    <div className="py-3 px-1 h-full flex flex-col">
+      <div className="relative flex w-full flex-1" style={{ minHeight: '112px' }}>
         {/* White keys - flex-1 fills the width evenly */}
         {whiteKeys.map((key) => (
           <PianoKey
